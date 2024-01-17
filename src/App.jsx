@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { Table, Button, Form } from "react-bootstrap";
-import { FontAwesomeIcon } from "../node_modules/@fortawesome/react-fontawesome";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import Fuse from "fuse.js";
-import "../node_modules/bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/css/bootstrap.min.css";
 
-export const App = () => {
+const App = () => {
   // Market ve kategori array'leri
   const shops = [
     { id: 1, name: "Migros" },
@@ -23,8 +23,6 @@ export const App = () => {
     // ... Diğer kategoriler
   ];
 
-
-
   // Ürün state'i
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -35,24 +33,45 @@ export const App = () => {
   const [filteredStatus, setFilteredStatus] = useState("all");
   const [filteredName, setFilteredName] = useState("");
 
-  // Filtre değişikliklerine tepki olarak tabloyu güncelle
-  useEffect(() => {
-    // Filtrelenmiş ürünleri oluştur
-    const filteredProducts = products.filter((product) => {
-      const shopFilter =
-        filteredShopId === "all" || product.shop === filteredShopId;
-      const categoryFilter =
-        filteredCategoryId === "all" || product.category === filteredCategoryId;
-      const statusFilter =
-        filteredStatus === "all" ||
-        (filteredStatus === "bought" && product.isBought) ||
-        (filteredStatus === "notBought" && !product.isBought);
+  // Yeni ürün state'i
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    shop: "",
+    category: "",
+  });
 
-      return shopFilter && categoryFilter && statusFilter && fuzzySearch(product.name, filteredName);
-    });
+// Yeni ürün state'ini güncelleyen işlev
+const handleInputChange = (e) => {
+  const { name, value } = e.target;
+  setNewProduct((prevProduct) => ({
+    ...prevProduct,
+    [name]: value,
+  }));
+};
 
-    setFilteredProducts(filteredProducts);
-  }, [filteredShopId, filteredCategoryId, filteredStatus, filteredName, products]);
+// Filtre değişikliklerine tepki olarak tabloyu güncelle
+useEffect(() => {
+  // Filtrelenmiş ürünleri oluştur
+  const filteredProducts = products.filter((product) => {
+    const shopFilter =
+      filteredShopId === "all" || product.shop === filteredShopId;
+    const categoryFilter =
+      filteredCategoryId === "all" || product.category === filteredCategoryId;
+    const statusFilter =
+      filteredStatus === "all" ||
+      (filteredStatus === "bought" && product.isBought) ||
+      (filteredStatus === "notBought" && !product.isBought);
+
+    return (
+      shopFilter &&
+      categoryFilter &&
+      statusFilter &&
+      fuzzySearch(product.name, filteredName)
+    );
+  });
+
+  setFilteredProducts(filteredProducts);
+}, [filteredShopId, filteredCategoryId, filteredStatus, filteredName, products]);
 
   // Fuzzy search işlevi
   const fuzzySearch = (productName, searchText) => {
@@ -66,7 +85,9 @@ export const App = () => {
   const handleProductClick = (productId) => {
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
-        product.id === productId ? { ...product, isBought: !product.isBought } : product
+        product.id === productId
+          ? { ...product, isBought: !product.isBought }
+          : product
       )
     );
   };
@@ -95,60 +116,83 @@ export const App = () => {
     // Burada gerçek bir konfeti animasyonu başlatılabilir
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault(); // Formun sayfayı yeniden yüklemesini engelle
+  
+    // Form verilerini kullanarak yeni ürün ekleyin
+    const newProduct = {
+      id: products.length + 1, // Yeni ürünün benzersiz bir ID'si olmalı
+      name: e.target.elements.name.value,
+      shop: e.target.elements.shop.value,
+      category: e.target.elements.category.value,
+      isBought: false,
+    };
+  
+    // Yeni ürünü state'e ekleyin
+    setProducts((prevProducts) => [...prevProducts, newProduct]);
+  
+    // Formu sıfırlayın
+    setNewProduct({
+      name: "",
+      shop: "",
+      category: "",
+    });
+  };
+
   return (
     <div>
       <h1>Alışveriş Listesi Uygulaması</h1>
       <h2>Ürün Ekle</h2>
-      {/* ... (Form kodları) */}
-      <form onSubmit={this.handleSubmit}>
-          <label>
-            Ürün Adı:
-            <input
-              type="text"
-              name="name"
-              value={this.state.newProduct.name}
-              onChange={this.handleInputChange}
-            />
-          </label>
-          <br />
-          <label>
-            Market:
-            <select
-              name="shop"
-              value={this.state.newProduct.shop}
-              onChange={this.handleInputChange}
-            >
-              <option value="">-- Seçiniz --</option>
-              {this.state.shops.map((shop) => (
-                <option key={shop.id} value={shop.id}>
-                  {shop.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <br />
-          <label>
-            Kategori:
-            <select
-              name="category"
-              value={this.state.newProduct.category}
-              onChange={this.handleInputChange}
-            >
-              <option value="">-- Seçiniz --</option>
-              {this.state.categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <br />
-          <button type="submit">Ekle</button>
-        </form>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Ürün Adı:
+          <input
+            type="text"
+            name="name"
+            value={newProduct.name}
+            onChange={handleInputChange}
+          />
+        </label>
+        <br />
+        <label>
+          Market:
+          <select
+            name="shop"
+            value={newProduct.shop}
+            onChange={handleInputChange}
+          >
+            <option value="">-- Seçiniz --</option>
+            {shops.map((shop) => (
+              <option key={shop.id} value={shop.id}>
+                {shop.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <br />
+        <label>
+          Kategori:
+          <select
+            name="category"
+            value={newProduct.category}
+            onChange={handleInputChange}
+          >
+            <option value="">-- Seçiniz --</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <br />
+        <button type="submit">Ekle</button>
+      </form>
       <h2>Filtrele</h2>
       <Form>
-      {/* ... (Filtre kutuları) */}
-      <Form.Group>
+        {/* ... (Filtre kutuları) */}
+        {/* ... (Daha önceki form elemanları) */}
+        <Form.Group>
           <Form.Label>Market</Form.Label>
           <Form.Control
             as="select"
@@ -230,7 +274,9 @@ export const App = () => {
             <tr
               key={product.id}
               onClick={() => handleProductClick(product.id)}
-              style={{ textDecoration: product.isBought ? "line-through" : "none" }}
+              style={{
+                textDecoration: product.isBought ? "line-through" : "none",
+              }}
             >
               <td>{product.id}</td>
               <td>{product.name}</td>
