@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Table, Button, Form } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import Fuse from "fuse.js";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { nanoid } from "nanoid";
 
 const App = () => {
   // Market ve kategori array'leri
@@ -25,34 +26,13 @@ const App = () => {
 
   // Ürün state'i
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
 
   // Filtre state'leri
   const [filteredShopId, setFilteredShopId] = useState("all");
   const [filteredCategoryId, setFilteredCategoryId] = useState("all");
   const [filteredStatus, setFilteredStatus] = useState("all");
   const [filteredName, setFilteredName] = useState("");
-
-  // Yeni ürün state'i
-  const [newProduct, setNewProduct] = useState({
-    name: "",
-    shop: "",
-    category: "",
-  });
-
-// Yeni ürün state'ini güncelleyen işlev
-const handleInputChange = (e) => {
-  const { name, value } = e.target;
-  setNewProduct((prevProduct) => ({
-    ...prevProduct,
-    [name]: value,
-  }));
-};
-
-// Filtre değişikliklerine tepki olarak tabloyu güncelle
-useEffect(() => {
-  // Filtrelenmiş ürünleri oluştur
-  const filteredProducts = products.filter((product) => {
+  const filteredProductsWithoutName = products.filter((product) => {
     const shopFilter =
       filteredShopId === "all" || product.shop === filteredShopId;
     const categoryFilter =
@@ -62,24 +42,49 @@ useEffect(() => {
       (filteredStatus === "bought" && product.isBought) ||
       (filteredStatus === "notBought" && !product.isBought);
 
-    return (
-      shopFilter &&
-      categoryFilter &&
-      statusFilter &&
-      fuzzySearch(product.name, filteredName)
-    );
+    return shopFilter && categoryFilter && statusFilter;
   });
 
-  setFilteredProducts(filteredProducts);
-}, [filteredShopId, filteredCategoryId, filteredStatus, filteredName, products]);
+  const filteredProducts = fuzzySearch(
+    filteredProductsWithoutName,
+    filteredName
+  );
+  // Yeni ürün state'i
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    shop: "",
+    category: "",
+  });
+
+function findShopById(id){
+ return shops.find(shop=>shop.id==id)
+}
+
+function findCategoryById(id){
+  return categories.find(category=>category.id==id)
+}
+  // Yeni ürün state'ini güncelleyen işlev
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewProduct((prevProduct) => ({
+      ...prevProduct,
+      [name]: value,
+    }));
+  };
 
   // Fuzzy search işlevi
-  const fuzzySearch = (productName, searchText) => {
-    const fuse = new Fuse([productName], { keys: ["productName"] });
-    const result = fuse.search(searchText);
+  function fuzzySearch(products, searchText) {
+    if (!searchText) return products;
+    const options = {
+      keys: ["name"],
+    };
 
-    return result.length > 0;
-  };
+    const fuse = new Fuse(products, options);
+
+    const results = fuse.search(searchText);
+    console.log(results);
+    return results.map((result) => result.item);
+  }
 
   // Ürünü satın al işlevi
   const handleProductClick = (productId) => {
@@ -95,10 +100,7 @@ useEffect(() => {
   // Ürünü silme işlevi
   const handleProductDelete = (productId) => {
     // Alışveriş tamamlandıysa alert patlat
-    if (
-      products.every((product) => product.isBought) &&
-      products.length > 0
-    ) {
+    if (products.every((product) => product.isBought) && products.length > 0) {
       alert("Alışveriş Tamamlandı!");
       // Konfeti patlatmak için konfeti fonksiyonunu çağır
       triggerConfetti();
@@ -118,19 +120,21 @@ useEffect(() => {
 
   const handleSubmit = (e) => {
     e.preventDefault(); // Formun sayfayı yeniden yüklemesini engelle
-  
+
     // Form verilerini kullanarak yeni ürün ekleyin
     const newProduct = {
-      id: products.length + 1, // Yeni ürünün benzersiz bir ID'si olmalı
+      id: nanoid(), // Yeni ürünün benzersiz bir ID'si olmalı
       name: e.target.elements.name.value,
       shop: e.target.elements.shop.value,
       category: e.target.elements.category.value,
       isBought: false,
     };
-  
+
+    console.log("yeni ürün eklnecek", newProduct);
+
     // Yeni ürünü state'e ekleyin
     setProducts((prevProducts) => [...prevProducts, newProduct]);
-  
+
     // Formu sıfırlayın
     setNewProduct({
       name: "",
@@ -280,8 +284,8 @@ useEffect(() => {
             >
               <td>{product.id}</td>
               <td>{product.name}</td>
-              <td>{product.shop}</td>
-              <td>{product.category}</td>
+              <td>{findShopById(product.shop).name}</td>
+              <td>{findCategoryById(product.category).name}</td>
               <td>
                 <Button
                   variant="danger"
